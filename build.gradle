@@ -1,0 +1,66 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'io.gatling.gradle' version '3.9.5.6'  // Gatling plugin&#8203;``【oaicite:12】``&#8203;&#8203;``【oaicite:11】``&#8203;
+}
+
+group 'au.com.sportsbet.gatlingjava'
+version '1.0-SNAPSHOT'
+
+def getSecrets() {
+    Properties props = new Properties()
+    if (file('secrets.properties').exists()) {
+        props.load(new FileInputStream(file('secrets.properties')))
+    }
+    return props
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://nexus.sbetcorp.com.au/content/repositories/releases" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://packages.confluent.io/maven/" }
+    maven { url "https://repo.spring.io/plugins-release/" }
+
+    maven {
+        name = "ckps"
+        url "https://maven.pkg.github.com/flutter-global/cbse-kafka-public-schema"
+        credentials {
+            username = secrets["gpr.user"] ?: System.getenv("USERNAME")
+            password = secrets["gpr.key"] ?: System.getenv("TOKEN")
+        }
+    }
+}
+
+dependencies {
+    implementation 'org.apache.kafka:kafka-clients:3.6.0'  // Latest version of Kafka client&#8203;``【oaicite:10】``&#8203;&#8203;``【oaicite:9】``&#8203;
+    implementation 'org.apache.avro:avro:1.11.3'  // Latest version of Avro&#8203;``【oaicite:8】``&#8203;&#8203;``【oaicite:7】``&#8203;&#8203;``【oaicite:6】``&#8203;
+    implementation 'io.gatling:gatling-core:3.9.5'  // Gatling core dependency&#8203;``【oaicite:5】``&#8203;
+    implementation 'io.gatling:gatling-recorder:3.9.5'  // Gatling recorder dependency&#8203;``【oaicite:4】``&#8203;
+    implementation 'io.gatling:gatling-test-framework:3.9.5'
+    implementation 'io.gatling.highcharts:gatling-charts-highcharts:3.9.5'
+    implementation 'io.gatling:gatling-core-java:3.9.5'
+    implementation 'com.flutter.uki.cbse:cbse-kafka-public-schema:0.1.13'
+    implementation 'io.confluent:kafka-avro-serializer:5.3.0'
+    implementation('io.confluent:kafka-schema-registry:7.4.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+    }
+}
+
+def simulationName = project.hasProperty('simulationClass') ? project.simulationClass : 'AccountUpdateSimulation'
+
+gatling {
+    // ...
+    simulationName = "au.com.sportsbet.gatlingjava.simulations${simulationName}"  // Use string interpolation here
+    // ...
+}
+
+application {
+    mainClass = simulationName
+}
+
+task runGatling(type: JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'io.gatling.app.Gatling'
+    args = ['-s', simulationName]
+}
