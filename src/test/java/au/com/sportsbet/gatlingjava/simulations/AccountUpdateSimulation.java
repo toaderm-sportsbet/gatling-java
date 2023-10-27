@@ -19,8 +19,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.gatling.javaapi.core.CoreDsl.constantUsersPerSec;
 import static io.gatling.javaapi.core.CoreDsl.global;
-import static io.gatling.javaapi.core.CoreDsl.rampUsers;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
@@ -29,15 +29,6 @@ import static java.util.Collections.singletonList;
 public class AccountUpdateSimulation extends Simulation {
     static AtomicBoolean messageSent = new AtomicBoolean(false);
     AccountUpdate accountUpdate;
-
-    {
-        accountUpdate = createAccountUpdate(UUID.randomUUID().toString(),
-                RandomStringUtils.randomAlphanumeric(10),
-                "ddd",
-                "ddd", EventSourceType.ACCOUNT_UPDATE);
-
-    }
-
     ScenarioBuilder scn = scenario("Update account")
             .exec(session -> {
                 publishMessage("customers", accountUpdate);
@@ -50,13 +41,20 @@ public class AccountUpdateSimulation extends Simulation {
                     }
             );
 
+    {
+        accountUpdate = createAccountUpdate(UUID.randomUUID().toString(),
+                RandomStringUtils.randomAlphanumeric(10),
+                "ddd",
+                "ddd", EventSourceType.ACCOUNT_UPDATE);
 
+    }
 
     {
-        setUp(scn.injectOpen(rampUsers(100).
-                during(java.time.Duration.ofMinutes(1)))).
+
+        setUp(scn.injectOpen(constantUsersPerSec(10).during(java.time.Duration.ofMinutes(1)))).
                 assertions(global().successfulRequests().
                         count().around(1L, 1000L));
+
     }
 
     public static AccountUpdate createAccountUpdate(String requestId, String customerId, String firstName, String lastName, EventSourceType eventSourceType) {
